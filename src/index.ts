@@ -30,6 +30,20 @@ async function addMovie(): Promise<void> {
   // 1.b Prompt the user for genre.
   // 2.b If the genre does not exist, create a new genre.
   // 3.b Ask the user if they want to want to add another genre to the movie.
+
+  const movieTitle = await input({message: 'Enter movie title: '});
+  const details = await input({message: 'Enter movie details: '});
+  const createdYear = await input({message: 'Enter year of creation: '});
+
+  const movie = await prisma.movie.create({
+    data: {
+      title:    movieTitle,
+      details:  details,
+      year:     createdYear
+    }
+  });
+
+  console.log(`\nTitle: ${movieTitle}\nDetails: ${details}\nCreated year: ${createdYear}\n`);
 }
 
 async function updateMovie(): Promise<void> {

@@ -8,3 +8,30 @@ datasource db {
 }
 
 // your models go here
+
+model Movie {
+  id      Int       @id @default(autoincrement())
+  title   String
+  // genreId Int
+  // genre   Genre     @relation(fields: [genreId], references: [id])
+  details String?
+  year    String
+
+  genres GenresOnMovies[]
+}
+
+model Genre {
+  id        Int      @id @default(autoincrement())
+  genreTitle String
+
+  movies GenresOnMovies[]
+}
+
+model GenresOnMovies {
+  movie   Movie @relation(fields: [movieId], references: [id])
+  movieId Int
+  genre   Genre @relation(fields: [genreId], references: [id])
+  genreId Int
+
+  @@id([movieId, genreId])
+}
