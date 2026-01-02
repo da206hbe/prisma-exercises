@@ -12,8 +12,6 @@ datasource db {
 model Movie {
   id      Int       @id @default(autoincrement())
   title   String
-  // genreId Int
-  // genre   Genre     @relation(fields: [genreId], references: [id])
   details String?
   year    String
 
@@ -21,8 +19,8 @@ model Movie {
 }
 
 model Genre {
-  id        Int      @id @default(autoincrement())
-  genreTitle String
+  id          Int      @id @default(autoincrement())
+  genreTitle  String
 
   movies GenresOnMovies[]
 }

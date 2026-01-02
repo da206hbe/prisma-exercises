@@ -8,6 +8,7 @@
 import { input, select } from "@inquirer/prompts";
 import { PrismaClient } from "./generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { connect } from "http2";
 
 const connectionString = `${process.env.DATABASE_URL}`;
 if (!connectionString) {
@@ -19,10 +20,10 @@ const prisma = new PrismaClient({ adapter });
 
 async function addMovie(): Promise<void> {
   // Expected:
-  // 1. Prompt the user for movie title, year.
-  // 2. Use Prisma client to create a new movie with the provided details.
+  // 1. Prompt the user for movie title, year. x
+  // 2. Use Prisma client to create a new movie with the provided details. x
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#create
-  // 3. Print the created movie details.
+  // 3. Print the created movie details. x
   //
   // Transactions and relationships (This we can add later on)
   //    Reference : https://www.prisma.io/docs/orm/prisma-client/queries/transactions
@@ -31,19 +32,70 @@ async function addMovie(): Promise<void> {
   // 2.b If the genre does not exist, create a new genre.
   // 3.b Ask the user if they want to want to add another genre to the movie.
 
-  const movieTitle = await input({message: 'Enter movie title: '});
-  const details = await input({message: 'Enter movie details: '});
-  const createdYear = await input({message: 'Enter year of creation: '});
+  // Basic data for movie
+  const movieTitle: string = await input({message: 'Enter movie title: '});
+  const details: string = await input({message: 'Enter movie details: '});
+  const createdYear: string = await input({message: 'Enter year of creation: '});
+  let genreTitle: string = "";
+  let anotherAnswer: string = "";
+  const genres: string[] = [];
 
+  // Collect genres in an array
+  do {
+    genreTitle = await input({message: 'Enter a genre: '});
+
+    genres.push(genreTitle.trim());
+
+    anotherAnswer = await input({message: 'Do you want to enter another genre (y/n): '});
+  } while (anotherAnswer.toLowerCase() === 'y');
+
+  // Look if genre already exists otherwise create it
+  const genreConnections = [];
+
+  for (const genreTitle of genres) {
+    let genre = await prisma.genre.findFirst({
+      where: {
+        genreTitle
+      }
+    });
+
+    if (!genre)
+      genre = await prisma.genre.create({
+        data: { genreTitle }
+      });
+
+    genreConnections.push({
+      genre: {
+        connect: {
+          id: genre.id
+        }
+      }
+    });
+  }
+  
+  // Create the film and connect genres
   const movie = await prisma.movie.create({
     data: {
       title:    movieTitle,
       details:  details,
-      year:     createdYear
+      year:     createdYear,
+      genres: {
+        create: genreConnections
+      }
+    },
+    include: {
+      genres: {
+        include: { genre: true }
+      }
     }
   });
 
-  console.log(`\nTitle: ${movieTitle}\nDetails: ${details}\nCreated year: ${createdYear}\n`);
+  console.log(`\n${movie.title}\n${movie.details}\n${movie.year}\n`);
+
+  for (const genreOnMovies of movie.genres)
+    console.log(`${genreOnMovies.genre.genreTitle} `);
+
+  console.log(`\n`);
 }
 
 async function updateMovie(): Promise<void> {
@@ -53,6 +105,48 @@ async function updateMovie(): Promise<void> {
   // 3. Use Prisma client to update the movie with the provided ID with the new details.
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#update
   // 4. Print the updated movie details.
+
+  // Fetch all the movie titles
+  const movies = await prisma.movie.findMany({
+    orderBy: { title: "asc" }
+  });
+
+  // Build choices for the select menu
+  const choices = movies.map(movie => ({
+    name: `${movie.title} (${movie.year})`,
+    value: movie.id
+  }));
+
+  // Choose a movie
+  const movieId = await select({
+    message: 'Choose what movie to update',
+    choices
+  });
+
+// Fetch the one to update
+const movie = await prisma.movie.findUnique({
+  where: { id: movieId }
+});
+
+console.log(`\nMovie to update: ${movie?.title}\nCreated year: ${movie?.year}`);
+
+// 
+
+
+  // Fill select with movie titles
+  // const movieSelect = await select ({
+  //   message: 'Select movie to update',
+  //   choices: [ {
+  //     name: 'npm',
+  //     value: 'npm',
+  //     description: 'npm is shit'
+  //   },
+  //   {
+  //     name: 'vpm',
+  //     value: 'vpm',
+  //     description: 'vpm is crap'
+  //   } ]
+  // });
 }
 
 async function deleteMovie(): Promise<void> {
