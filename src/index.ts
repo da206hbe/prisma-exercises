@@ -119,34 +119,27 @@ async function updateMovie(): Promise<void> {
 
   // Choose a movie
   const movieId = await select({
-    message: 'Choose what movie to update',
+    message: 'Choose what movie to update:',
     choices
   });
 
-// Fetch the one to update
-const movie = await prisma.movie.findUnique({
-  where: { id: movieId }
-});
+  // Prompt user for new values for the movie
+  const updatedMovieTitle = await input({message: 'Enter new name of film: '});
+  const updatedCreatedYear = await input({message: 'Enter new creation year: '});
 
-console.log(`\nMovie to update: ${movie?.title}\nCreated year: ${movie?.year}`);
+  // Update movie with new data
+  const updateMovie = await prisma.movie.update({
+    where: {
+      id: movieId
+    },
+    data: {
+      title: updatedMovieTitle,
+      year: updatedCreatedYear
+    }
+  });
 
-// 
-
-
-  // Fill select with movie titles
-  // const movieSelect = await select ({
-  //   message: 'Select movie to update',
-  //   choices: [ {
-  //     name: 'npm',
-  //     value: 'npm',
-  //     description: 'npm is shit'
-  //   },
-  //   {
-  //     name: 'vpm',
-  //     value: 'vpm',
-  //     description: 'vpm is crap'
-  //   } ]
-  // });
+  console.log(`\nMovie after update:\n${updateMovie.title}\n${updateMovie.details}\n` +
+    `${updateMovie.year}`);
 }
 
 async function deleteMovie(): Promise<void> {
@@ -155,6 +148,32 @@ async function deleteMovie(): Promise<void> {
   // 2. Use Prisma client to delete the movie with the provided ID.
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#delete
   // 3. Print a message confirming the movie deletion.
+
+// Fetch all the movie titles
+  const movies = await prisma.movie.findMany({
+    orderBy: { title: "asc" }
+  });
+
+  // Build choices for the select menu
+  const choices = movies.map(movie => ({
+    name: `${movie.title} (${movie.year})`,
+    value: movie.id
+  }));
+
+  // Choose a movie
+  const movieId = await select({
+    message: 'Choose what movie to delete:',
+    choices
+  });
+
+  // Delete the selected movie
+  const deleteMovie = await prisma.movie.delete({
+    where: {
+      id: movieId
+    }
+  });
+
+  console.log(`\nMovie '${deleteMovie.title}' has been deleted!`);
 }
 
 async function listMovies(): Promise<void> {
@@ -163,6 +182,32 @@ async function listMovies(): Promise<void> {
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#findmany
   // 2. Include the genre details in the fetched movies.
   // 3. Print the list of movies with their genres (take 10).
+
+  // Fetch all the movie titles
+  const movies = await prisma.movie.findMany({
+    include: {
+      genres: {
+        include: {
+          genre: true
+        }
+      }
+    },
+    orderBy: { title: "asc" }
+  });
+
+  console.log(`List of all movies:\n`);
+
+  for (const movie of movies) {
+    console.log(`Title: ${movie.title}`);
+    console.log(`Details: ${movie.details}`);
+    console.log(`Year: ${movie.year}`);
+
+    for (const genreOfMovie of movie.genres) {
+      console.log(`Genres: ${(genreOfMovie.genre.genreTitle)}`);
+    }
+
+    console.log();
+  }
 }
 
 async function listMovieById(): Promise<void> {
