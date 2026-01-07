@@ -26,9 +26,9 @@ model Genre {
 }
 
 model GenresOnMovies {
-  movie   Movie @relation(fields: [movieId], references: [id])
+  movie   Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
   movieId Int
-  genre   Genre @relation(fields: [genreId], references: [id])
+  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
   genreId Int
 
   @@id([movieId, genreId])

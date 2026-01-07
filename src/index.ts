@@ -185,6 +185,7 @@ async function listMovies(): Promise<void> {
 
   // Fetch all the movie titles
   const movies = await prisma.movie.findMany({
+    take: 10,
     include: {
       genres: {
         include: {
@@ -217,6 +218,50 @@ async function listMovieById(): Promise<void> {
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#findunique
   // 3. Include the genre details in the fetched movie.
   // 4. Print the movie details with its genre.
+
+  // Fetch all the movie titles
+  const movies = await prisma.movie.findMany({
+    orderBy: { title: "asc" }
+  });
+
+  // Build choices for the select menu
+  const choices = movies.map(movie => ({
+    name: `${movie.title} (${movie.year})`,
+    value: movie.id
+  }));
+
+  // Choose a movie
+  const movieId = await select({
+    message: 'Choose what movie to delete:',
+    choices
+  });
+
+  // Find the chosen movie incl. genres
+  const chosenMovie = await prisma.movie.findUnique({
+    where: {
+      id: movieId
+    },
+    include: {
+      genres: {
+        include: {
+          genre: true
+        }
+      }
+    }
+  });
+
+  // Display the movie with details
+  console.log(`Movie:`);
+  console.log(`======\n`);
+  console.log(`Title: ${chosenMovie?.title}`);
+  console.log(`Details: ${chosenMovie?.details}`);
+  console.log(`Created year: ${chosenMovie?.year}`);
+
+  if (chosenMovie) {
+    for (const genreOnMovies of chosenMovie?.genres) {
+      console.log(`Genres: ${genreOnMovies.genre.genreTitle}`);
+    }
+  }
 }
 
 async function listMovieByGenre(): Promise<void> {
@@ -226,6 +271,17 @@ async function listMovieByGenre(): Promise<void> {
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#findmany
   // 3. Include the genre details in the fetched movies.
   // 4. Print the list of movies with the provided genre (take 10).
+
+  // Fetch all the genres
+  const genres = await prisma.genre.findMany({
+    orderBy: { genreTitle: "asc" }
+  });
+
+  // Build choices for the select menu
+  const choices = genres.map(genre => ({
+    name: `${genre.genreTitle})`,
+    value: genre.id
+  }));
 }
 
 async function addGenre(): Promise<void> {
@@ -276,3 +332,6 @@ while (true) {
     }));
   }
 }
+
+
+// daslkdjalskjdlaksjd
