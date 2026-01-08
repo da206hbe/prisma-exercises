@@ -279,9 +279,50 @@ async function listMovieByGenre(): Promise<void> {
 
   // Build choices for the select menu
   const choices = genres.map(genre => ({
-    name: `${genre.genreTitle})`,
+    name: `${genre.genreTitle}`,
     value: genre.id
   }));
+
+  // Choose a genre
+  const genreId = await select({
+    message: 'Choose genre to look for:',
+    choices
+  });
+
+  // Find movies with the chosen genre
+  const movies = await prisma.movie.findMany({
+    take: 10,
+    where: {
+      genres: {
+        some: {
+          genreId: genreId
+        }
+      }
+    },
+    include: {
+      genres: {
+        include: {
+          genre: true
+        }
+      }
+    }
+  });
+
+  if (movies.length === 0) {
+    console.log(`No movies found with chosen genre!`);
+
+    return;
+  }
+
+  // Display movies of a specific genre
+  console.log(`Movie(s):`);
+  console.log(`=========\n`);
+
+  movies.forEach(movie => {
+    console.log(`Title: ${movie.title}`);
+    console.log(`Details: ${movie.details ?? "No details"}`);
+    console.log(`Genres: ${movie.genres.map(g => g.genre.genreTitle).join(', ')}\n`);
+  });
 }
 
 async function addGenre(): Promise<void> {
@@ -290,6 +331,32 @@ async function addGenre(): Promise<void> {
   // 2. Use Prisma client to create a new genre with the provided name.
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#create
   // 3. Print the created genre details.
+
+  // Input a new genre
+  let newGenre: string = "";
+  
+  newGenre = await input({message: 'Enter a genre name: '});
+
+  // Look if genre already exists, if not create it
+  let genre = await prisma.genre.findFirst({
+    where: {
+      genreTitle: newGenre
+    }
+  });
+
+  if (genre) {
+    console.log(`Genre already exists!`)
+
+    return;
+  } else
+    genre = await prisma.genre.create({
+      data: {
+        genreTitle: newGenre
+      }
+    });
+
+  // Display created genre
+  console.log(`Genre "${genre.genreTitle}" created!`);
 }
 
 async function exitProgram(): Promise<never> {
